@@ -8,7 +8,8 @@ use Illuminate\Http\Request;
 class WishlistController extends Controller
 {
     //
-    public function addProductToWishlist(Request $request){
+    public function addProductToWishlist(Request $request)
+    {
         $user = $request->user();
         $user->products()->attach($request->product_id);
 
@@ -18,7 +19,8 @@ class WishlistController extends Controller
         ]);
     }
 
-    public function removeProductFromWishlist(Request $request,$id){
+    public function removeProductFromWishlist(Request $request, $id)
+    {
         $user = $request->user();
         $user->products()->detach($id);
 
@@ -28,7 +30,8 @@ class WishlistController extends Controller
         ]);
     }
 
-    public function getWishlist(Request $request){
+    public function getWishlist(Request $request)
+    {
         $user = $request->user();
         return response()->json([
             "status" => "success",

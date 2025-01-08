@@ -21,7 +21,7 @@ class UserController extends Controller
             // Sorting
             $sortBy = $request->input('sort_by', 'created_at');
             $sortDirection = $request->input('sort_direction', 'desc');
-            
+
             // Validate sort column to prevent potential SQL injection
             $allowedSortColumns = ['id', 'username', 'created_at', 'updated_at'];
             $sortBy = in_array($sortBy, $allowedSortColumns) ? $sortBy : 'created_at';

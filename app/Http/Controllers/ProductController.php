@@ -34,7 +34,7 @@ class ProductController extends Controller
             'colors' => 'array|min:1',
             'images' => 'array|max:3', // Limit to 3 images
         ]);
-    
+
         // Check if validation fails
         if ($validator->fails()) {
             return response()->json([
@@ -42,11 +42,11 @@ class ProductController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-    
+
         try {
             // Get validated data
             $validatedData = $validator->validated();
-    
+
             // Handle image upload before creating product
             try {
                 $uploadResponse = Cloudinary::upload($request->image_cover);
@@ -58,53 +58,53 @@ class ProductController extends Controller
                     'error' => $e->getMessage(),
                 ], 500);
             }
-    
+
             // Set default values for nullable fields
             $validatedData['sold'] = $validatedData['sold'] ?? 0;
             $validatedData['price_after_discount'] = $validatedData['price_after_discount'] ?? 0;
             $validatedData['ratings_average'] = $validatedData['ratings_average'] ?? 0;
             $validatedData['ratings_quantity'] = $validatedData['ratings_quantity'] ?? 0;
-    
+
             // Generate unique slug
             $baseSlug = Str::slug($validatedData['title']);
             $slug = $baseSlug;
             $counter = 1;
-    
+
             while (Product::where('slug', $slug)->exists()) {
                 $slug = $baseSlug . '-' . $counter;
                 $counter++;
             }
-    
+
             $validatedData['slug'] = $slug;
-    
+
             // Create the product
             $product = Product::create($validatedData);
-    
+
             // Add colors to the product
             $product->colors()->attach($validatedData['colors']);
 
             // upload images to cloudinary and add them to the product
             if (isset($validatedData['images']) && !empty($validatedData['images'])) {
                 $productImages = [];
-                
+
                 foreach ($validatedData['images'] as $image) {
                     try {
                         // Upload image to Cloudinary
                         $uploadResponse = Cloudinary::upload($image);
-                        
+
                         // Create record in product_images table
                         $productImages[] = [
                             'product_id' => $product->id,
                             'image_url' => $uploadResponse->getSecurePath(),
                         ];
-                        
+
                     } catch (\Exception $e) {
                         // Log the error but continue with other images
                         \Illuminate\Support\Facades\Log::error('Failed to upload product image: ' . $e->getMessage());
                         continue;
                     }
                 }
-                
+
                 // Bulk insert all successful image uploads
                 if (!empty($productImages)) {
                     \Illuminate\Support\Facades\DB::table('product_images')->insert($productImages);
@@ -115,9 +115,9 @@ class ProductController extends Controller
             return response()->json([
                 'status' => 'success',
                 'product' => $product,
-                'colors'=> $validatedData['colors']
+                'colors' => $validatedData['colors']
             ], 201);
-    
+
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
@@ -130,10 +130,10 @@ class ProductController extends Controller
 
     public function getProductBySlug($slug)
     {
-        $product =  Product::where('slug', $slug)->first();
+        $product = Product::where('slug', $slug)->first();
 
-        $product -> load('category:id,name');
-        $product -> load('colors:id,name');
+        $product->load('category:id,name');
+        $product->load('colors:id,name');
         $images = ProductImage::where('product_id', $product->id)->get();
         return response()->json([
             'status' => 'success',
@@ -257,7 +257,7 @@ class ProductController extends Controller
             // Sorting
             $sortBy = $request->input('sort_by', 'created_at');
             $sortDirection = $request->input('sort_direction', 'desc');
-            
+
             // Validate sort column to prevent potential SQL injection
             $allowedSortColumns = ['id', 'name', 'created_at', 'updated_at'];
             $sortBy = in_array($sortBy, $allowedSortColumns) ? $sortBy : 'created_at';
@@ -289,12 +289,13 @@ class ProductController extends Controller
             ], 500);
         }
     }
-    public function addCategory(Request $request){
+    public function addCategory(Request $request)
+    {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:categories,name',
         ]);
 
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
                 'errors' => $validator->errors()
@@ -305,13 +306,14 @@ class ProductController extends Controller
         $category = Category::create($validatedData);
 
         return response()->json([
-            "status"=>"success",
+            "status" => "success",
             "category" => $category
         ]);
 
 
 
     }
+
     public function getColors(Request $request)
     {
         try {
@@ -326,7 +328,7 @@ class ProductController extends Controller
             // Sorting
             $sortBy = $request->input('sort_by', 'created_at');
             $sortDirection = $request->input('sort_direction', 'desc');
-            
+
             // Validate sort column to prevent potential SQL injection
             $allowedSortColumns = ['id', 'name', 'created_at', 'updated_at'];
             $sortBy = in_array($sortBy, $allowedSortColumns) ? $sortBy : 'created_at';
@@ -358,12 +360,14 @@ class ProductController extends Controller
             ], 500);
         }
     }
-    public function addColor(Request $request){
+
+    public function addColor(Request $request)
+    {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:50|unique:categories,name',
         ]);
 
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
                 'errors' => $validator->errors()
@@ -374,7 +378,7 @@ class ProductController extends Controller
         $color = Color::create($validatedData);
 
         return response()->json([
-            "status"=>"success",
+            "status" => "success",
             "color" => $color
         ]);
 
@@ -387,19 +391,19 @@ class ProductController extends Controller
         try {
             // Start with base query
             $query = Product::query();
-    
+
             // Search by title
             if ($request->has('title')) {
                 $query->where('title', 'like', '%' . $request->input('title') . '%');
             }
-    
+
             // Search by category
             if ($request->has('category')) {
                 $query->whereHas('category', function ($categoryQuery) use ($request) {
                     $categoryQuery->where('name', 'like', '%' . $request->input('category') . '%');
                 });
             }
-    
+
             // Search by colors
             if ($request->has('colors')) {
                 $colors = is_array($request->input('colors')) ? $request->input('colors') : [$request->input('colors')];
@@ -407,24 +411,24 @@ class ProductController extends Controller
                     $colorQuery->whereIn('name', $colors);
                 });
             }
-    
+
             // Sorting
             $sortBy = $request->input('sort_by', 'created_at');
             $sortDirection = $request->input('sort_direction', 'desc');
-            
+
             // Validate sort column to prevent potential SQL injection
             $allowedSortColumns = ['id', 'title', 'small_description', 'long_description', 'quantity', 'sold', 'price', 'price_after_discount', 'ratings_average', 'ratings_quantity', 'sku', 'created_at', 'updated_at'];
             $sortBy = in_array($sortBy, $allowedSortColumns) ? $sortBy : 'created_at';
             $sortDirection = in_array(strtolower($sortDirection), ['asc', 'desc']) ? $sortDirection : 'desc';
-    
+
             $query->orderBy($sortBy, $sortDirection);
-    
+
             // Pagination
             $perPage = $request->input('per_page', 10);
             $perPage = max(1, min($perPage, 100)); // Ensure between 1 and 100
-    
+
             $products = $query->paginate($perPage);
-    
+
             return response()->json([
                 'status' => 'success',
                 'products' => $products->items(),

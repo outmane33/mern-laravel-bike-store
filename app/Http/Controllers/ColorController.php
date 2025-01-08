@@ -15,7 +15,7 @@ class ColorController extends Controller
             // Get all colors
             $colors = Color::all();
             $colorProductCounts = [];
-    
+
             // Loop through each color and get the product count
             foreach ($colors as $color) {
                 $colorProductCounts[] = [
@@ -23,7 +23,7 @@ class ColorController extends Controller
                     'product_count' => $color->products()->count()
                 ];
             }
-    
+
             return response()->json([
                 'status' => 'success',
                 'colors' => $colorProductCounts
@@ -37,10 +37,11 @@ class ColorController extends Controller
         }
     }
 
-    public function getProductColors($slug){
+    public function getProductColors($slug)
+    {
         $product = Product::where('slug', $slug)->first();
-        
-        
+
+
         return response()->json([
             'status' => 'success',
             'colors' => $product->colors->pluck('name')->toArray()
@@ -48,5 +49,5 @@ class ColorController extends Controller
     }
 
 
-    
+
 }
